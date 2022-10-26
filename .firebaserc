@@ -1,0 +1,14 @@
+{
+  "targets": {
+    "kanbanfire-test-94c4c": {
+      "hosting": {
+        "GDGWeb": [
+          "kanbanfire-test-94c4c"
+        ]
+      }
+    }
+  },
+  "projects": {
+    "default": "kanbanfire-test-94c4c"
+  }
+}

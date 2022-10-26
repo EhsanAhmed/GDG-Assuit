@@ -96,6 +96,16 @@
             ],
             "scripts": []
           }
+        },
+        "deploy": {
+          "builder": "@angular/fire:deploy",
+          "options": {
+            "prerender": false,
+            "ssr": false,
+            "browserTarget": "GDGWeb:build:production",
+            "firebaseProject": "kanbanfire-test-94c4c",
+            "firebaseHostingSite": "kanbanfire-test-94c4c"
+          }
         }
       }
     }
