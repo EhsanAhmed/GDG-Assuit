@@ -3,6 +3,7 @@ import { Component } from '@angular/core';
 import { Task } from './task/task';
 import { MatDialog } from '@angular/material/dialog';
 import { TaskDialogComponent, TaskDialogResult } from './task-dialog/task-dialog.component';
+import { Firestore, collection, addDoc, doc, deleteDoc, updateDoc, runTransaction, query, onSnapshot } from '@angular/fire/firestore';
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -10,16 +11,7 @@ import { TaskDialogComponent, TaskDialogResult } from './task-dialog/task-dialog
 })
 export class AppComponent {
   title = 'GDGWeb';
-  todo: Task[] = [
-    {
-      title: 'Buy milk',
-      description: 'Go to the store and buy milk'
-    },
-    {
-      title: 'Create a Kanban app',
-      description: 'Using Firebase and Angular create a Kanban app!'
-    }
-  ];
+  todo: Task[] = [];
 
   inProgress: Task[] = [];
   done: Task[] = [];
@@ -36,12 +28,10 @@ export class AppComponent {
       if (!result) {
         return;
       }
-      const dataList = this[list];
-      const taskIndex = dataList.indexOf(task);
       if (result.delete) {
-        dataList.splice(taskIndex, 1);
+        deleteDoc(doc(this.firestore, `${list}/${task.id}`));
       } else {
-        dataList[taskIndex] = task;
+        updateDoc(doc(this.firestore, `${list}/${task.id}`), { ...task });
       }
     });
   }
@@ -53,6 +43,11 @@ export class AppComponent {
     if (!event.container.data || !event.previousContainer.data) {
       return;
     }
+    const item = event.previousContainer.data[event.previousIndex];
+    runTransaction(this.firestore, async (transaction) => {
+      transaction.delete(doc(this.firestore, `${event.previousContainer.id}/${item.id}`))
+      transaction.set(doc(collection(this.firestore, event.container.id)), item)
+    });
     transferArrayItem(
       event.previousContainer.data,
       event.container.data,
@@ -60,7 +55,29 @@ export class AppComponent {
       event.currentIndex
     );
   }
-  constructor(private dialog: MatDialog) {}
+  constructor(private dialog: MatDialog, private firestore: Firestore) {
+    onSnapshot(query(collection(firestore, 'todo')), snap => {
+      const data: Task[] = [];
+      snap.forEach((doc) => {
+        data.push({ ...doc.data(), id: doc.id } as Task);
+      });
+      this.todo = data
+    });
+    onSnapshot(query(collection(firestore, 'inProgress')), snap => {
+      const data: Task[] = [];
+      snap.forEach((doc) => {
+        data.push({ ...doc.data(), id: doc.id } as Task);
+      });
+      this.inProgress = data
+    });
+    onSnapshot(query(collection(firestore, 'done')), snap => {
+      const data: Task[] = [];
+      snap.forEach((doc) => {
+        data.push({ ...doc.data(), id: doc.id } as Task);
+      });
+      this.done = data
+    });
+  }
 
   newTask(): void {
     const dialogRef = this.dialog.open(TaskDialogComponent, {
@@ -75,7 +92,7 @@ export class AppComponent {
         if (!result) {
           return;
         }
-        this.todo.push(result.task);
+        addDoc(collection(this.firestore, 'todo'), result.task)
       });
   }
 }
